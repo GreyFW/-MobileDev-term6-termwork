@@ -1,4 +1,4 @@
-package com.example.domain
+package com.example.domain.entities
 
 enum class ExerciseType {
     DB,  // Dumbbell

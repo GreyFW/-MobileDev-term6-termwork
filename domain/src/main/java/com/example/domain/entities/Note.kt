@@ -1,4 +1,4 @@
-package com.example.domain
+package com.example.domain.entities
 
 data class Note(
     val id: String,
