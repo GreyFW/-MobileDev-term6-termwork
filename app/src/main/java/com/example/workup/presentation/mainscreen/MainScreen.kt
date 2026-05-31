@@ -4,23 +4,26 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
-fun MainScreen() {
-    var isLoading by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        delay(800)
-        isLoading = false
-    }
+fun MainScreen(
+    viewModel: MainViewModel = hiltViewModel()
+) {
+    val isLoading by viewModel.isLoading.collectAsState()
+    val currentDay by viewModel.currentDay.collectAsState()
+    val streak by viewModel.streak.collectAsState()
+    val selectedDate by viewModel.selectedDate.collectAsState()
+    val trainedDates by viewModel.trainedDates.collectAsState()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -38,13 +41,23 @@ fun MainScreen() {
                 contentPadding = PaddingValues(vertical = 24.dp)
             ) {
                 item {
-                    HeaderBlock()
+                    HeaderBlock(
+                        day = currentDay,
+                        streakCount = streak,
+                        selectedDate = selectedDate,
+                        trainedDates = trainedDates,
+                        onDateSelected = { viewModel.setDate(it) },
+                        onTimeChanged = { sH, sM, eH, eM -> viewModel.updateTime(sH, sM, eH, eM) },
+                        onSaveClicked = { viewModel.saveWorkout() }
+                    )
                     Spacer(modifier = Modifier.height(32.dp))
                 }
+
                 item {
                     DashedDivider(color = MaterialTheme.colorScheme.secondary)
                     Spacer(modifier = Modifier.height(24.dp))
                 }
+
                 item {
                     Text(
                         text = "EXERCISES",
@@ -52,7 +65,12 @@ fun MainScreen() {
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
-                    ExerciseListSection()
+
+                    ExerciseListSection(
+                        exercises = currentDay.exercisesList,
+                        onAddExercise = { viewModel.addExercise() },
+                        onExerciseUpdated = { viewModel.updateExercise(it) }
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
@@ -68,12 +86,18 @@ fun MainScreen() {
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
-                    NotesListSection()
+
+                    NotesListSection(
+                        notes = currentDay.notesList,
+                        onAddNote = { viewModel.addNote() },
+                        onNoteUpdated = { id, content -> viewModel.updateNote(id, content) }
+                    )
                 }
             }
         }
     }
 }
+
 @Composable
 fun DashedDivider(modifier: Modifier = Modifier, color: Color) {
     Canvas(modifier = modifier.fillMaxWidth().height(2.dp)) {
@@ -82,7 +106,7 @@ fun DashedDivider(modifier: Modifier = Modifier, color: Color) {
             start = Offset(0f, size.height / 2),
             end = Offset(size.width, size.height / 2),
             strokeWidth = 2.dp.toPx(),
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(25f, 15f), 0f)
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f)
         )
     }
 }

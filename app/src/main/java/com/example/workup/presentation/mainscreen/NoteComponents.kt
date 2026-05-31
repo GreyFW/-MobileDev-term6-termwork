@@ -19,14 +19,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
+import com.example.domain.entity.Note
 
 @Composable
-fun NotesListSection() {
-    var notes by remember { mutableStateOf(listOf("")) }
+fun NotesListSection(
+    notes: List<Note>,
+    onAddNote: () -> Unit,
+    onNoteUpdated: (String, String) -> Unit // Передаем ID заметки и новый текст
+) {
     val focusManager = LocalFocusManager.current
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        notes.forEachIndexed { index, noteText ->
+        notes.forEach { note ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -34,11 +38,9 @@ fun NotesListSection() {
                     .padding(16.dp)
             ) {
                 BasicTextField(
-                    value = noteText,
-                    onValueChange = { newValue ->
-                        val updatedNotes = notes.toMutableList()
-                        updatedNotes[index] = newValue
-                        notes = updatedNotes
+                    value = note.content,
+                    onValueChange = { newText ->
+                        onNoteUpdated(note.id, newText)
                     },
                     textStyle = TextStyle(
                         color = MaterialTheme.colorScheme.primary,
@@ -50,7 +52,7 @@ fun NotesListSection() {
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
-                        if (noteText.isEmpty()) {
+                        if (note.content.isEmpty()) {
                             Text(
                                 text = "Write your note here...",
                                 color = MaterialTheme.colorScheme.secondary,
@@ -66,7 +68,7 @@ fun NotesListSection() {
         Box(
             modifier = Modifier
                 .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                .clickable { notes = notes + "" }
+                .clickable { onAddNote() }
                 .padding(horizontal = 24.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {

@@ -5,7 +5,9 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,22 +29,35 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workup.R
+import com.example.domain.entity.Day
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun HeaderBlock() {
-    var isWorkoutSaved by remember { mutableStateOf(false) }
-    var streakCount by remember { mutableIntStateOf(15) }
-
-    var startH by remember { mutableStateOf("00") }
-    var startM by remember { mutableStateOf("00") }
-    var endH by remember { mutableStateOf("99") }
-    var endM by remember { mutableStateOf("99") }
+fun HeaderBlock(
+    day: Day,
+    streakCount: Int,
+    selectedDate: LocalDate,
+    trainedDates: Set<LocalDate>,
+    onDateSelected: (LocalDate) -> Unit,
+    onTimeChanged: (String, String, String, String) -> Unit,
+    onSaveClicked: () -> Unit
+) {
+    val startH = day.startTime?.hour?.toString()?.padStart(2, '0') ?: "00"
+    val startM = day.startTime?.minute?.toString()?.padStart(2, '0') ?: "00"
+    val endH = day.endTime?.hour?.toString()?.padStart(2, '0') ?: "99"
+    val endM = day.endTime?.minute?.toString()?.padStart(2, '0') ?: "99"
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        HeaderDates()
+        HeaderDates(
+            selectedDate = selectedDate,
+            trainedDates = trainedDates,
+            onDateSelected = onDateSelected
+        )
 
         Box(
             modifier = Modifier
@@ -76,7 +91,7 @@ fun HeaderBlock() {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
 
-                TimeInputField(hour = startH, minute = startM) { h, m -> startH = h; startM = m }
+                TimeInputField(hour = startH, minute = startM) { h, m -> onTimeChanged(h, m, endH, endM) }
 
                 Text(
                     text = " — ",
@@ -85,14 +100,129 @@ fun HeaderBlock() {
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
 
-                TimeInputField(hour = endH, minute = endM) { h, m -> endH = h; endM = m }
+                TimeInputField(hour = endH, minute = endM) { h, m -> onTimeChanged(startH, startM, h, m) }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                SaveStreakButton(isSaved = isWorkoutSaved, onClick = { isWorkoutSaved = true; streakCount++ })
+                SaveStreakButton(
+                    isSaved = day.isWorkedOut,
+                    onClick = { onSaveClicked() }
+                )
                 Text("STREAK: $streakCount", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HeaderDates(
+    selectedDate: LocalDate,
+    trainedDates: Set<LocalDate>,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    )
+
+    // Системный календарь
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val newDate = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
+                        onDateSelected(newDate)
+                    }
+                    showDatePicker = false
+                }) { Text("OK", color = MaterialTheme.colorScheme.primary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    val pastDaysCount = 7
+    val pastDays = (pastDaysCount downTo 1).map { selectedDate.minusDays(it.toLong()) }
+    val formatter = DateTimeFormatter.ofPattern("dd MMM. EEEE", Locale.ENGLISH)
+    val formattedToday = selectedDate.format(formatter).lowercase(Locale.ENGLISH)
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy((-8).dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                pastDays.forEachIndexed { index, date ->
+                    val backgroundRes = when (index) {
+                        0 -> R.drawable.ic_day_start
+                        pastDays.lastIndex -> R.drawable.ic_day_end
+                        else -> R.drawable.ic_day_middle
+                    }
+                    val dayStr = date.dayOfMonth.toString().padStart(2, '0')
+                    val isTrained = trainedDates.contains(date)
+
+                    val baseModifier = Modifier
+                        .size(if (index == 0 || index == pastDays.lastIndex) 52.dp else 60.dp, 30.dp)
+                        .clickable { onDateSelected(date) }
+
+                    val paintedModifier = if (isTrained) {
+                        baseModifier.paint(
+                            painter = painterResource(id = backgroundRes),
+                            contentScale = ContentScale.FillBounds,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                        )
+                    } else {
+                        baseModifier
+                    }
+
+                    Box(
+                        modifier = paintedModifier,
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = dayStr,
+                            color = if (isTrained) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(
+                                start = if (index == pastDays.lastIndex) 6.dp else 0.dp,
+                                end = if (index == 0) 6.dp else 0.dp
+                            )
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = formattedToday,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .offset(x = 6.dp)
+                    .clickable { showDatePicker = true }
+            )
+        }
+        Image(
+            painter = painterResource(id = R.drawable.ic_today_line),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.width(200.dp).height(16.dp).align(Alignment.End).offset(x = 50.dp, y = (-14).dp)
+        )
     }
 }
 
@@ -136,63 +266,6 @@ fun TimeInputField(
     }
 }
 
-@Composable
-fun HeaderDates() {
-    val today = LocalDate.now()
-    val pastDays = (4 downTo 1).map { today.minusDays(it.toLong()) }
-    val formatter = DateTimeFormatter.ofPattern("dd MMM. EEEE", Locale.ENGLISH)
-    val formattedToday = today.format(formatter).lowercase(Locale.ENGLISH)
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy((-8).dp), modifier = Modifier.weight(1f)) {
-                pastDays.forEachIndexed { index, date ->
-                    val backgroundRes = when (index) {
-                        0 -> R.drawable.ic_day_start
-                        3 -> R.drawable.ic_day_end
-                        else -> R.drawable.ic_day_middle
-                    }
-                    val dayStr = date.dayOfMonth.toString().padStart(2, '0')
-                    Box(
-                        modifier = Modifier
-                            .size(if (index == 1 || index == 2) 60.dp else 52.dp, 30.dp)
-                            .paint(
-                                painter = painterResource(id = backgroundRes),
-                                contentScale = ContentScale.FillBounds,
-                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = dayStr,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(start = if (index == 3) 6.dp else 0.dp, end = if (index == 0) 6.dp else 0.dp)
-                        )
-                    }
-                }
-            }
-            Text(
-                text = formattedToday,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.offset(x = 6.dp)
-            )
-        }
-        Image(
-            painter = painterResource(id = R.drawable.ic_today_line),
-            contentDescription = null,
-            contentScale = ContentScale.FillBounds,
-            modifier = Modifier.width(200.dp).height(16.dp).align(Alignment.End).offset(x = 50.dp, y = (-14).dp)
-        )
-    }
-}
 @Composable
 fun SaveStreakButton(
     isSaved: Boolean,

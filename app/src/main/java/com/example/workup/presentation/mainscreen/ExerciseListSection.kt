@@ -26,19 +26,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workup.R
 import com.example.domain.entity.EquipmentType
+import com.example.domain.entity.Exercise
 import androidx.compose.ui.platform.LocalFocusManager
 
 @Composable
-fun ExerciseListSection() {
-    var exercisesCount by remember { mutableIntStateOf(1) }
-
+fun ExerciseListSection(
+    exercises: List<Exercise>,
+    onAddExercise: () -> Unit,
+    onExerciseUpdated: (Exercise) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        repeat(exercisesCount) {
-            ExerciseInputRow()
+        exercises.forEach { exercise ->
+            ExerciseInputRow(
+                exercise = exercise,
+                onExerciseChanged = onExerciseUpdated
+            )
         }
 
         Button(
-            onClick = { exercisesCount++ },
+            onClick = onAddExercise,
             modifier = Modifier.fillMaxWidth().height(48.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -54,13 +60,16 @@ fun ExerciseListSection() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ExerciseInputRow() {
-    var name by remember { mutableStateOf("") }
-    var weight by remember { mutableStateOf("") }
+fun ExerciseInputRow(
+    exercise: Exercise,
+    onExerciseChanged: (Exercise) -> Unit
+) {
     var currentRepInput by remember { mutableStateOf("") }
-    var sets by remember { mutableStateOf(listOf<String>()) }
-    var equipment by remember { mutableStateOf<EquipmentType?>(null) }
     val focusManager = LocalFocusManager.current
+
+    val weightStr = if (exercise.weight == 0f) "" else {
+        if (exercise.weight % 1 == 0f) exercise.weight.toInt().toString() else exercise.weight.toString()
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -83,36 +92,39 @@ fun ExerciseInputRow() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     BasicTextField(
-                        value = name,
-                        onValueChange = { name = it },
+                        value = exercise.name,
+                        onValueChange = { onExerciseChanged(exercise.copy(name = it)) },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold),
                         modifier = Modifier.weight(1f),
                         decorationBox = { innerTextField ->
-                            if (name.isEmpty()) Text("Exercise name", color = MaterialTheme.colorScheme.secondary)
+                            if (exercise.name.isEmpty()) Text("Exercise name", color = MaterialTheme.colorScheme.secondary)
                             innerTextField()
                         }
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    EquipmentSelector(equipment = equipment, onSelect = { eq -> equipment = eq })
+                    EquipmentSelector(
+                        equipment = exercise.type,
+                        onSelect = { onExerciseChanged(exercise.copy(type = it)) }
+                    )
 
                     Spacer(modifier = Modifier.width(8.dp))
 
                     BasicTextField(
-                        value = weight,
-                        onValueChange = { weight = it },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = { focusManager.clearFocus() }
-                        ),
+                        value = weightStr,
+                        onValueChange = { newWeight ->
+                            val floatWeight = newWeight.toFloatOrNull() ?: 0f
+                            onExerciseChanged(exercise.copy(weight = floatWeight))
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.primary),
                         modifier = Modifier.width(40.dp),
                         decorationBox = { innerTextField ->
-                            if (weight.isEmpty()) Text("0", color = MaterialTheme.colorScheme.secondary)
+                            if (weightStr.isEmpty()) Text("0", color = MaterialTheme.colorScheme.secondary)
                             innerTextField()
                         }
                     )
@@ -127,9 +139,8 @@ fun ExerciseInputRow() {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    sets.forEach { rep -> SetBubble(reps = rep) }
+                    exercise.repsCount.forEach { rep -> SetBubble(reps = rep.toString()) }
 
-                    // Меняем цвет фона в зависимости от того, введен ли текст
                     val isRepUsed = currentRepInput.isNotEmpty()
                     val repBgColor = if (isRepUsed) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
 
@@ -143,30 +154,32 @@ fun ExerciseInputRow() {
                         BasicTextField(
                             value = currentRepInput,
                             onValueChange = { newValue ->
-                                // пробел — сохраняем сет
                                 if (newValue.endsWith(" ")) {
-                                    val digit = newValue.trim()
-                                    if (digit.isNotEmpty()) {
-                                        sets = sets + digit
+                                    val digit = newValue.trim().toIntOrNull()
+                                    if (digit != null) {
+                                        onExerciseChanged(exercise.copy(repsCount = exercise.repsCount + digit))
                                         currentRepInput = ""
                                     }
                                 } else {
                                     currentRepInput = newValue.filter { it.isDigit() }
-                                    // Автосохранение для двузначных чисел
                                     if (currentRepInput.length >= 2) {
-                                        sets = sets + currentRepInput
-                                        currentRepInput = ""
+                                        val digit = currentRepInput.toIntOrNull()
+                                        if (digit != null) {
+                                            onExerciseChanged(exercise.copy(repsCount = exercise.repsCount + digit))
+                                            currentRepInput = ""
+                                        }
                                     }
                                 }
                             },
-
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                             keyboardActions = KeyboardActions(
                                 onDone = {
-                                    if (currentRepInput.isNotEmpty()) {
-                                        sets = sets + currentRepInput
+                                    val digit = currentRepInput.toIntOrNull()
+                                    if (digit != null) {
+                                        onExerciseChanged(exercise.copy(repsCount = exercise.repsCount + digit))
                                         currentRepInput = ""
                                     }
+                                    focusManager.clearFocus()
                                 }
                             ),
                             textStyle = TextStyle(
@@ -184,6 +197,7 @@ fun ExerciseInputRow() {
         }
     }
 }
+
 
 // Компонент выбора иконки
 @Composable

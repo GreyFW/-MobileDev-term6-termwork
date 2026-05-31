@@ -32,14 +32,24 @@ class MainViewModel @Inject constructor(
     private val _streak = MutableStateFlow(0)
     val streak = _streak.asStateFlow()
 
+    private val _selectedDate = MutableStateFlow(LocalDate.now())
+    val selectedDate = _selectedDate.asStateFlow()
+
+    private val _trainedDates = MutableStateFlow<Set<LocalDate>>(emptySet())
+    val trainedDates = _trainedDates.asStateFlow()
+
     init {
         loadDayData(LocalDate.now())
+    }
+
+    fun setDate(date: LocalDate) {
+        _selectedDate.value = date
+        loadDayData(date)
     }
 
     private fun loadDayData(date: LocalDate) {
         viewModelScope.launch {
             _isLoading.value = true
-
             _streak.value = repository.getCurrentStreak()
 
             val savedDay = repository.getWorkoutForDate(date)
@@ -97,9 +107,8 @@ class MainViewModel @Inject constructor(
     fun saveWorkout() {
         viewModelScope.launch {
             _currentDay.update { it.copy(isWorkedOut = true) }
-
+            _trainedDates.update { it + _selectedDate.value }
             repository.saveWorkout(_currentDay.value)
-
             _streak.update { it + 1 }
         }
     }
