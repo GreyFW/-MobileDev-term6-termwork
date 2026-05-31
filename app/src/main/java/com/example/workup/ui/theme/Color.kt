@@ -11,9 +11,9 @@ val WorkupElementsBG = Color(0xFFC0CCE6)
 val WorkupInputUsed = WorkupTextOnSurfaces
 
 // dark theme
-val WorkupDarkPrimary =  Color(0xFF093FBD)
+val WorkupDarkPrimary =  WorkupPrimary
 val WorkupDarkSecondary = Color(0xFF0C2867)
-val WorkupDarkBackground = Color(0xFF0D0F1E)
-val WorkupDarkTextOnSurfaces = Color(0xFF2E3C75)
-val WorkupDarkElementsBG = Color(0xFF212548)
+val WorkupDarkBackground = Color(0xFF141728)
+val WorkupDarkTextOnSurfaces = Color(0xFF070B1A)
+val WorkupDarkElementsBG = WorkupDarkTextOnSurfaces
 val WorkupDarkInputUsed = WorkupDarkTextOnSurfaces

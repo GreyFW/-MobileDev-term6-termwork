@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,16 +16,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workup.R
 import com.example.domain.entity.EquipmentType
+import androidx.compose.ui.platform.LocalFocusManager
 
 @Composable
 fun ExerciseListSection() {
@@ -58,6 +60,7 @@ fun ExerciseInputRow() {
     var currentRepInput by remember { mutableStateOf("") }
     var sets by remember { mutableStateOf(listOf<String>()) }
     var equipment by remember { mutableStateOf<EquipmentType?>(null) }
+    val focusManager = LocalFocusManager.current
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -82,10 +85,7 @@ fun ExerciseInputRow() {
                     BasicTextField(
                         value = name,
                         onValueChange = { name = it },
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        ),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold),
                         modifier = Modifier.weight(1f),
                         decorationBox = { innerTextField ->
                             if (name.isEmpty()) Text("Exercise name", color = MaterialTheme.colorScheme.secondary)
@@ -95,17 +95,20 @@ fun ExerciseInputRow() {
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    EquipmentSelector(
-                        equipment = equipment,
-                        onSelect = { eq -> equipment = eq }
-                    )
+                    EquipmentSelector(equipment = equipment, onSelect = { eq -> equipment = eq })
 
                     Spacer(modifier = Modifier.width(8.dp))
 
                     BasicTextField(
                         value = weight,
                         onValueChange = { weight = it },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = { focusManager.clearFocus() }
+                        ),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.primary),
                         modifier = Modifier.width(40.dp),
                         decorationBox = { innerTextField ->
@@ -126,24 +129,46 @@ fun ExerciseInputRow() {
                 ) {
                     sets.forEach { rep -> SetBubble(reps = rep) }
 
-                    // Поле ввода сета
+                    // Меняем цвет фона в зависимости от того, введен ли текст
+                    val isRepUsed = currentRepInput.isNotEmpty()
+                    val repBgColor = if (isRepUsed) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
+
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .background(Color.Transparent, RoundedCornerShape(8.dp))
+                            .background(repBgColor, RoundedCornerShape(8.dp))
                             .border(1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         BasicTextField(
                             value = currentRepInput,
-                            onValueChange = {
-                                currentRepInput = it
-                                if (it.length >= 2) {
-                                    sets = sets + it
-                                    currentRepInput = ""
+                            onValueChange = { newValue ->
+                                // пробел — сохраняем сет
+                                if (newValue.endsWith(" ")) {
+                                    val digit = newValue.trim()
+                                    if (digit.isNotEmpty()) {
+                                        sets = sets + digit
+                                        currentRepInput = ""
+                                    }
+                                } else {
+                                    currentRepInput = newValue.filter { it.isDigit() }
+                                    // Автосохранение для двузначных чисел
+                                    if (currentRepInput.length >= 2) {
+                                        sets = sets + currentRepInput
+                                        currentRepInput = ""
+                                    }
                                 }
                             },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    if (currentRepInput.isNotEmpty()) {
+                                        sets = sets + currentRepInput
+                                        currentRepInput = ""
+                                    }
+                                }
+                            ),
                             textStyle = TextStyle(
                                 color = MaterialTheme.colorScheme.primary,
                                 fontSize = 16.sp,
@@ -151,13 +176,7 @@ fun ExerciseInputRow() {
                                 textAlign = TextAlign.Center
                             ),
                             singleLine = true,
-                            modifier = Modifier.fillMaxSize(),
-                            // Обертка для идеального выравнивания
-                            decorationBox = { innerTextField ->
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                    innerTextField()
-                                }
-                            }
+                            modifier = Modifier.wrapContentSize()
                         )
                     }
                 }

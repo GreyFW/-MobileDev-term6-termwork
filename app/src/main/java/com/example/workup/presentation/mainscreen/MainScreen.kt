@@ -14,13 +14,11 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
 @Composable
-fun MainScreen(
-    // iewModel через Hilt
-) {
+fun MainScreen() {
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        delay(800) // Имитация запроса к БД
+        delay(800)
         isLoading = false
     }
 
@@ -39,19 +37,14 @@ fun MainScreen(
                     .padding(horizontal = 20.dp),
                 contentPadding = PaddingValues(vertical = 24.dp)
             ) {
-                // ЗАГОЛОВОК
                 item {
                     HeaderBlock()
                     Spacer(modifier = Modifier.height(32.dp))
                 }
-
-                // дивайдер
                 item {
-                    DashedDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                    DashedDivider(color = MaterialTheme.colorScheme.secondary)
                     Spacer(modifier = Modifier.height(24.dp))
                 }
-
-                // БЛОК УПРАЖНЕНИЙ
                 item {
                     Text(
                         text = "EXERCISES",
@@ -59,18 +52,15 @@ fun MainScreen(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
-
                     ExerciseListSection()
-                    Spacer(modifier = Modifier.height(32.dp))
-                }
-
-                // дивайдер
-                item {
-                    DashedDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
-                // БЛОК ЗАМЕТОК
+                item {
+                    DashedDivider(color = MaterialTheme.colorScheme.secondary)
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
                 item {
                     Text(
                         text = "NOTES",
@@ -78,14 +68,12 @@ fun MainScreen(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
-
                     NotesListSection()
                 }
             }
         }
     }
 }
-
 @Composable
 fun DashedDivider(modifier: Modifier = Modifier, color: Color) {
     Canvas(modifier = modifier.fillMaxWidth().height(2.dp)) {

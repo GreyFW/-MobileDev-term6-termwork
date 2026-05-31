@@ -39,7 +39,7 @@ val AppTypography = Typography(
     labelMedium = TextStyle(
         fontFamily = OxaniumFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 12.sp,
+        fontSize = 14.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     )
