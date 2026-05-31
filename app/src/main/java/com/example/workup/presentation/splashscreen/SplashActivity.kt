@@ -1,30 +1,29 @@
 package com.example.workup.presentation.splashscreen
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
-import com.example.workup.databinding.ActivitySplashBinding
+import com.example.workup.MainActivity
+import com.example.workup.R
 import com.example.workup.ui.theme.WorkUpTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import android.content.Intent
-import androidx.activity.compose.setContent
-import com.example.workup.MainActivity
 
 @AndroidEntryPoint
 class SplashActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivitySplashBinding
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = ActivitySplashBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_splash)
 
-        binding.composeView.apply {
+        val composeView = findViewById<ComposeView>(R.id.compose_view)
+
+        composeView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
             setContent {
