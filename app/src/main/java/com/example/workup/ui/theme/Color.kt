@@ -2,10 +2,15 @@ package com.example.workup.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// light theme
+val WorkupPrimary = Color(0xFF3113B6)
+val WorkupSecondaryText = Color(0xFF5A72A0)
+val WorkupBackground = Color(0xFFE9EBF2)
+val WorkupWhite = Color(0xFFFFFFFF)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+
+// dark theme
+val WorkupDarkPrimary = Color(0xFF142479)
+val WorkupDarkSecondaryText = Color(0xFF081B46)
+val WorkupDarkBackground = Color(0xFF0C0C2A)
+val WorkupDarkWhite = Color(0xFF081B46)
