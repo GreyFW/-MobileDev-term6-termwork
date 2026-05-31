@@ -1,11 +1,15 @@
 package com.example.workup.presentation.mainscreen
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
@@ -41,11 +45,17 @@ fun MainScreen(
                     Spacer(modifier = Modifier.height(32.dp))
                 }
 
+                // дивайдер
+                item {
+                    DashedDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
                 // БЛОК УПРАЖНЕНИЙ
                 item {
                     Text(
                         text = "EXERCISES",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
@@ -54,11 +64,17 @@ fun MainScreen(
                     Spacer(modifier = Modifier.height(32.dp))
                 }
 
+                // дивайдер
+                item {
+                    DashedDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
                 // БЛОК ЗАМЕТОК
                 item {
                     Text(
                         text = "NOTES",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
@@ -67,5 +83,18 @@ fun MainScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun DashedDivider(modifier: Modifier = Modifier, color: Color) {
+    Canvas(modifier = modifier.fillMaxWidth().height(2.dp)) {
+        drawLine(
+            color = color,
+            start = Offset(0f, size.height / 2),
+            end = Offset(size.width, size.height / 2),
+            strokeWidth = 2.dp.toPx(),
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(25f, 15f), 0f)
+        )
     }
 }

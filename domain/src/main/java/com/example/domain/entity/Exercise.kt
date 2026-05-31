@@ -1,16 +1,16 @@
 package com.example.domain.entity
 
-enum class ExerciseType {
-    DB,  // Dumbbell
-    BB,  // Barbell
-    FW,  // Free Weight
-    P    // Plate
+enum class EquipmentType(val label: String) {
+    DB("Dumbbell"),
+    BB("Barbell"),
+    FW("Bodyweight"),
+    P("Plate")
 }
 
 data class Exercise(
     val id: String,
     val name: String,
-    val type: ExerciseType,
+    val type: EquipmentType,
     val weight: Float,
     val repsCount: List<Int>
 )

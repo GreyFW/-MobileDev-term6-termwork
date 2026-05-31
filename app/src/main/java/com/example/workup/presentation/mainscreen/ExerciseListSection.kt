@@ -1,9 +1,7 @@
 package com.example.workup.presentation.mainscreen
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,12 +16,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.domain.entity.ExerciseType
+import com.example.workup.R
+import com.example.domain.entity.EquipmentType
 
 @Composable
 fun ExerciseListSection() {
@@ -56,11 +57,12 @@ fun ExerciseInputRow() {
     var weight by remember { mutableStateOf("") }
     var currentRepInput by remember { mutableStateOf("") }
     var sets by remember { mutableStateOf(listOf<String>()) }
+    var equipment by remember { mutableStateOf<EquipmentType?>(null) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 0.dp, bottomEnd = 12.dp, bottomStart = 0.dp),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
@@ -72,7 +74,7 @@ fun ExerciseInputRow() {
             )
 
             Column(modifier = Modifier.padding(12.dp)) {
-                // Верхний ряд: Название, Тип, Вес
+                // ВЕРХНИЙ РЯД
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -93,6 +95,13 @@ fun ExerciseInputRow() {
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    EquipmentSelector(
+                        equipment = equipment,
+                        onSelect = { eq -> equipment = eq }
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
                     BasicTextField(
                         value = weight,
                         onValueChange = { weight = it },
@@ -109,15 +118,15 @@ fun ExerciseInputRow() {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // НИЖНИЙ РЯД С СЕТАМИ
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    sets.forEach { rep ->
-                        SetBubble(reps = rep)
-                    }
+                    sets.forEach { rep -> SetBubble(reps = rep) }
 
+                    // Поле ввода сета
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -139,10 +148,16 @@ fun ExerciseInputRow() {
                                 color = MaterialTheme.colorScheme.primary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                textAlign = TextAlign.Center
                             ),
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxSize(),
+                            // Обертка для идеального выравнивания
+                            decorationBox = { innerTextField ->
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                    innerTextField()
+                                }
+                            }
                         )
                     }
                 }
@@ -151,23 +166,40 @@ fun ExerciseInputRow() {
     }
 }
 
+// Компонент выбора иконки
+@Composable
+fun EquipmentSelector(equipment: EquipmentType?, onSelect: (EquipmentType) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.clickable { expanded = true }) {
+        if (equipment == null) {
+            Text("EQP", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
+        } else {
+            when (equipment) {
+                EquipmentType.DB -> Icon(painterResource(id = R.drawable.ic_dumbbells), null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                EquipmentType.BB -> Icon(painterResource(id = R.drawable.ic_barbell), null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                EquipmentType.FW -> Text("FW", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                EquipmentType.P -> Text("P", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            EquipmentType.entries.forEach { eqpType ->
+                DropdownMenuItem(
+                    text = { Text(text = eqpType.label, color = MaterialTheme.colorScheme.primary) },
+                    onClick = { onSelect(eqpType); expanded = false }
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun SetBubble(reps: String) {
     var isCompleted by remember { mutableStateOf(false) }
-
-    val scale by animateFloatAsState(
-        targetValue = if (isCompleted) 1.1f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "setScale"
-    )
-    val bgColor by animateColorAsState(
-        targetValue = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-        label = "setColor"
-    )
-    val textColor by animateColorAsState(
-        targetValue = if (isCompleted) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
-        label = "setTextColor"
-    )
+    val scale by animateFloatAsState(if (isCompleted) 1.1f else 1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "")
+    val bgColor by animateColorAsState(if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface, label = "")
+    val textColor by animateColorAsState(if (isCompleted) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary, label = "")
 
     Box(
         modifier = Modifier
@@ -179,11 +211,6 @@ fun SetBubble(reps: String) {
             .clickable { isCompleted = !isCompleted },
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = reps,
-            color = textColor,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Text(text = reps, color = textColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
     }
 }

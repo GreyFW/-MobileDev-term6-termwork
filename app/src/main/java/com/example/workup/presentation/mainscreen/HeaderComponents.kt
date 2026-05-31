@@ -24,7 +24,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.workup.R
@@ -36,94 +35,106 @@ import java.util.Locale
 fun HeaderBlock() {
     var isWorkoutSaved by remember { mutableStateOf(false) }
     var streakCount by remember { mutableIntStateOf(15) }
-    var timeInput by remember { mutableStateOf("00:00") }
+
+    var startH by remember { mutableStateOf("00") }
+    var startM by remember { mutableStateOf("00") }
+    var endH by remember { mutableStateOf("99") }
+    var endM by remember { mutableStateOf("99") }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Блок с датами
         HeaderDates()
 
-        // Синий баннер DAILY WORKOUT
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(58.dp)
-                .paint(
-                    painter = painterResource(id = R.drawable.ic_banner_title),
-                    contentScale = ContentScale.FillBounds,
-                ),
+                .paint(painterResource(id = R.drawable.ic_banner_title), contentScale = ContentScale.FillBounds),
             contentAlignment = Alignment.CenterStart
         ) {
-            Text(
-                text = "DAILY WORKOUT",
-                color = Color.White,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.padding(start = 24.dp)
-            )
+            Text("DAILY WORKOUT", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 24.dp))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Блок времени и стрика
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Часы и время
+            // блок времени (Старт — Конец)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_timer),
                     contentDescription = "Timer",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(28.dp)
                 )
-
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Box(
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    BasicTextField(
-                        value = timeInput,
-                        onValueChange = { if (it.length <= 5) timeInput = it },
-                        textStyle = TextStyle(
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        ),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.width(60.dp)
-                    )
-                }
-            }
-
-            // Кнопка сохранения и стрик
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SaveStreakButton(
-                    isSaved = isWorkoutSaved,
-                    onClick = {
-                        isWorkoutSaved = true
-                        streakCount++
-                    }
+                TimeInputField(
+                    hour = startH,
+                    minute = startM,
+                    onValueChange = { h, m -> startH = h; startM = m }
                 )
 
                 Text(
-                    text = "STREAK: $streakCount",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    text = " — ",
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 8.dp)
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+
+                TimeInputField(
+                    hour = endH,
+                    minute = endM,
+                    onValueChange = { h, m -> endH = h; endM = m }
                 )
             }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SaveStreakButton(isSaved = isWorkoutSaved, onClick = { isWorkoutSaved = true; streakCount++ })
+                Text("STREAK: $streakCount", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
+            }
         }
+    }
+}
+@Composable
+fun TimeInputField(
+    hour: String,
+    minute: String,
+    onValueChange: (String, String) -> Unit
+) {
+    var inputBuffer by remember { mutableStateOf(hour + minute) }
+
+    Box(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = hour, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text(text = ":", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text(text = minute, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        }
+
+        BasicTextField(
+            value = inputBuffer,
+            onValueChange = { newValue ->
+                val digits = newValue.filter { it.isDigit() }.takeLast(4)
+                inputBuffer = digits
+                when (digits.length) {
+                    0 -> onValueChange("00", "00")
+                    1 -> onValueChange("0${digits}", "00")
+                    2 -> onValueChange(digits, "00")
+                    3 -> onValueChange(digits.take(2), "0${digits.last()}")
+                    4 -> onValueChange(digits.take(2), digits.drop(2))
+                }
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = TextStyle(color = Color.Transparent),
+            cursorBrush = SolidColor(Color.Transparent),
+            modifier = Modifier.matchParentSize()
+        )
     }
 }
 
@@ -168,7 +179,7 @@ fun HeaderDates() {
                     ) {
                         Text(
                             text = dayStr,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(
@@ -214,7 +225,7 @@ fun SaveStreakButton(
         transitionSpec = { tween(500) },
         label = "streakColor"
     ) { saved ->
-        if (saved) Color(0xFF639922) else MaterialTheme.colorScheme.primary // Зеленый при успехе
+        if (saved) Color(0xFF639922) else MaterialTheme.colorScheme.primary
     }
 
     val scale by transition.animateFloat(
